@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use ndarray::{Array2, Axis};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
@@ -11,16 +9,16 @@ pub enum Activation {
 }
 
 #[derive(Debug)]
-pub struct DNN {
-    //no of layers in the network(hidden and output).
+pub struct BIDNN {
+    // number of layers in the network(hidden and output).
     layers: usize,
-    // no of units in each layer.
+    // number of units in each layer.
     units: Vec<usize>,
-    //weights contains weights for each layer of the network.
-    //dimension of each weight is (no of units in a current layer,no of units of previous layer that is going to be input to this layer).
+    // weights contains learning weight parameters for each layer of the network.
+    // dimension of each weight is (no of units in a current layer l,no of units of previous layer(l-1) that is going to be input to this layer).
     weights: Vec<Array2<f64>>,
-    //biases contains bias for each layer of the network.
-    //dimension of each bias is (no of units in a current layer).
+    // biases contains bias for each layer of the network.
+    // dimension of each bias is (no of units in a current layer).
     biases: Vec<Array2<f64>>,
     // this vector contains activation function type for each layer.
     activations: Vec<Activation>,
@@ -30,19 +28,19 @@ pub struct DNN {
     no_of_input_features: usize,
 }
 
-impl DNN {
+impl BIDNN {
     pub fn new(
         no_of_input_features: usize,
         units: Vec<usize>,
         activations: Vec<Activation>,
         learning_rate: f64,
-    ) -> DNN {
+    ) -> BIDNN {
         let layers = units.len();
         if layers < 2 {
             panic!("Neural network should contain at least two layers")
         }
         if *units.last().expect("Expecting units") != 1 {
-            panic!("Neural network should contain only one unit at output layer")
+            panic!("Neural network should contain only one unit at output layer in a binary classifier")
         }
         let mut weights: Vec<Array2<f64>> = vec![];
         let mut biases: Vec<Array2<f64>> = vec![];
@@ -51,21 +49,20 @@ impl DNN {
         while let Some(cur_units) = units_iter.next() {
             // we have to assign random values to weights of the each unit of each layer of the network.
             // if we assign 0 to all. then the result will be equivalent to using single layer with single unit.
-            // This is happening because all the units in all the layers will learn the same thing instead of learning diffent features of the input sample when we assign 0 to all.
-            // we need to assign small random values so that when we use sigmoid or tanh activation function slope will not be nearly zero.
-            // for large values of weights when we calculate derivative slope will be zero for sigmoid and tanh functions.
+            // This is happening because all the units in all the layers will learn the same thing instead of learning diffent features of the input sample.
+            // we need to assign small random values so that when we use sigmoid or tanh activation function slope(derivative) will not be nearly zero.
+            // for large values of weights when we calculate derivative or slope, it will be zero for sigmoid and tanh functions.
             // becasue these functions are flat line for large x axis values.
-            let rand_arr = Array2::random((*cur_units, pre_units), Uniform::new(0.001, 0.010));
+            let rand_arr = Array2::random((*cur_units, pre_units), Uniform::new(0.01, 0.09));
             weights.push(rand_arr);
             // we can assign all 0's to the biases because it will not create any of the above problems.
             // we create the column vector to follow the convention.
-            // let zeros = Array2::zeros((*cur_units, 1));
-            let zeros = Array2::random((*cur_units, 1), Uniform::new(0.001, 0.010));
+            let zeros = Array2::zeros((*cur_units, 1));
             biases.push(zeros);
 
             pre_units = *cur_units;
         }
-        DNN {
+        BIDNN {
             layers,
             units,
             weights,
@@ -77,8 +74,8 @@ impl DNN {
     }
 
     // input_sample should have nuber of rows equal to the no_of_input_features passed to the new() function.
-    // no of columns can be any number
-    // output should contain the actual output of the final layer
+    // no of columns can be any number based on how user want to train.
+    // output should contain the actual output for the given.
     // output matrix should have number of rows = no of units in output layer.
     // output matrix should have number of columns = no columns in the input_sample.
     // Each column of output matrix corresponds to ouput of each column in the input_sample.
@@ -86,27 +83,27 @@ impl DNN {
         // dbg!(&self.weights, &self.biases);
         let cache = self.forward_propagate(input_sample.clone());
         self.backward_propagate(input_sample, output, cache);
-        // dbg!(&self.weights, &self.biases);
+        dbg!(&self.weights.last());
     }
 
     //evaluate returns output value for given input
-    pub fn evaluate(&mut self, input_sample: Array2<f64>) {
+    pub fn evaluate(&mut self, input_sample: Array2<f64>) -> Array2<f64> {
         if input_sample.nrows() != self.no_of_input_features {
             panic!("No of rows should match no of input features");
         }
         let cache = self.forward_propagate(input_sample.clone());
-        dbg!(&self.biases, &self.weights, &cache.last());
+        cache
+            .last()
+            .expect("Expecting predicted output of last layer")
+            .clone()
     }
 
     // forward_propagate function will propagate through each layer of the network one by one
     // and store the predicted output of each layer in the the cache.
     // Each neural network unit will have learning parameters W and B assoiciated with them.
-    // In forward propagate we will use these parameters W and B to predict the output.
+    // In forward propagate we will use these parameters W(self.weights) and B(self.biases) to predict the output.
     // second layer will predict the output based on first layers output.
-    // at the end we will have single predicted output for each input example we have given.
-    // To the output of the final layer we will apply function loss function L = Y * log(A) + (1-Y)log(1-A).
-    // here we are assuming last layer will always output the binary classification.
-    // based on this loss value only we will calculate derivative for all the paramters in backward propogation.
+    // at the end we will have single predicted output from the output layer.
     fn forward_propagate(&mut self, input_sample: Array2<f64>) -> Vec<Array2<f64>> {
         //getting no of columns in the input sample
         // this ncols return the lenght of Axis(1)
@@ -135,7 +132,8 @@ impl DNN {
             let bias = bias
                 .broadcast((*units, no_of_examples))
                 .expect("Expecting the broadcasted array");
-            let mut z = z.add(bias);
+            // matrix adddition
+            let mut z = z + bias;
 
             //apply the activation function to the output of the current layer
             let acti = self
@@ -150,24 +148,25 @@ impl DNN {
                     z.mapv_inplace(|val| sigmoid(val));
                 }
                 Activation::ReLu => {
-                    panic!("ReLu not supported yet");
+                    z.mapv_inplace(|val| relu(0.0, val));
                 }
             }
-
             cache.push(z.clone());
             pre_out = z;
         }
         cache
     }
 
-    // backward_propagate will propagate throught each layer of the network from the last to the first.
-    // In the backward propagation we will calculate derivative L with respect each learning parameter of each neural network unit.
+    // backward_propagate will propagate through each layer of the network from the last layer to the first layer.
+    // In the backward propagation we will calculate derivative of L with respect each learning parameter of the each neural network unit.
     // Intutively these derivative values will help us to minimize this loss value.
-    // In the process it will comput he dw[i],db[i] for each layer i and update their weights weights[i] and bias biases[i] based on the learning rate alpha.
+    // In the process it will comput he dw[i],db[i] for each layer i and update their corresponding weights weights[i] and bias biases[i].
     // here we will calculate derivative of L with respect to each learning parameter associated with each neural network unit.
-    // these derivatives are dw = dL/dw and db = dL/dB. to calculate this derivative we use chain rule.
+    // these derivatives are dw = dL/dw and db = dL/dB. to calculate this derivative we used chain rules and computed the formulas.
     // For example to calculate dw we will use da=dL/dA and dA/dz and dz/dw.
-    // But for simplification we have calculated these derivatives already as formulas which we are using here
+    // But for simplification we have calculated these derivatives already as formulas which we are using here.
+    // why do we use derivatives? Because derivatives will indicate us for the increase or decrease in the Loss value how much each parameter contributed.
+    // For example the value dw = dL/dw will say how much weight w contributed for the loss value created by current iteration.
     fn backward_propagate(
         &mut self,
         input_sample: Array2<f64>,
@@ -187,15 +186,19 @@ impl DNN {
             .get(self.layers - 2)
             .expect("Expecting predicted output of the layer before layer")
             .clone();
+
         // if g(z) = (1/1+e^-z). for sigmoid function derivative with respect to z will be g'(z) = (1/1+e^-z)(1- (1/1+e^-z))=g(z)(1-g(z)).
         // note the g(Z^[l]) is the output of the layer l.
         // dL/dz = (dL/dg)(dg/dz), if g(z)=a. then dL/dz = (dL/da)(da/dz).
         // For logistic regression L(a,Y) = -y*log(a) - (1-y)log(1-a).
         // if you find these derivatives and substitute in dL/dz you will get dz = dL/dz = (dL/da)(da/dz) = a - y where a is predicted output and y is actual output.
         // dimension of dz is (1, no of input examples)
+
         // note: the other way could be we can calculate dL/dA and dA/dz then multiply numerically.
         // Here as of now we assumed A will be sigmoid function. so found the equation A-Y.
-        let mut dz = cur_layer_output.clone() - output;
+        // for your reference dL/da = (-y/a) +(1-y / 1-a) and da/dz = a(1-a).
+        let mut dz = cur_layer_output - output;
+
         // note: dw and db are dL/dw and dL/db for current layer.
         // we got dw = dL/dw = (dL/dz)(dz/dw) = (dz)(A^[l-1])^T
         // here * is broadcasted to all the elements of the matrix. for getting average we multiply by (1/m)
@@ -203,7 +206,11 @@ impl DNN {
         // the matrix multiplication will result in (no of units in ouput layer,no of units in previous layer)
         let dw = (dz.dot(&prev_layer_out.reversed_axes())) * (1.0 / no_of_examples as f64);
         // db is of dimension (no of units in current layer,1)
-        let db = dz.sum_axis(Axis(1));
+        let db = dz.sum_axis(Axis(1)) * (1.0 / no_of_examples as f64);
+        // sum_axis returns the 1 dimensional array. but we actually want column vector.
+        // assuming output layer will have single unit since this is binary classification.
+        let db =
+            Array2::from_shape_vec((1, 1), db.to_vec()).expect("Expecting reshaped bias matrix");
 
         // updating the learning parameters for output layer.
         let w = self
@@ -243,16 +250,36 @@ impl DNN {
                 .get(cur_layer + 1)
                 .expect("Expecting weights of next layer")
                 .clone();
+            let activation_fun = self
+                .activations
+                .get(cur_layer)
+                .expect("Expecting activation function");
+            match activation_fun {
+                Activation::Tanh => {
+                    // next_weights for layer l we will get from layer l+1.
+                    // dimensions of weight of layer l is (no of units of layer l,no of units of layer l-1)
+                    // derivative for tanh activation function.
+                    // derivation of tanh is (1 - (tan(z))^2)
+                    cur_layer_output.mapv_inplace(|val| {
+                        let v = val.tanh();
+                        1.0 - (v * v)
+                    });
+                }
+                Activation::Sigmoid => {
+                    // derivation of sigmoid function is a*(1-a)
+                    cur_layer_output.mapv_inplace(|val| val * (1.0 - val));
+                }
+                Activation::ReLu => {
+                    // derivation of ReLu function is {0 if val<0, 1 if val>=0}
+                    cur_layer_output.mapv_inplace(|val| {
+                        if val < 0.0 {
+                            return 0.0;
+                        }
+                        1.0
+                    });
+                }
+            }
 
-            // computing (tanh(Z^[l]))^2
-            // next_weights for layer l we will get from layer l+1.
-            // dimensions of weight of layer l is (no of units of layer l,no of units of layer l-1)
-            // assuming all the hidden layers will have tanh activation function.
-            // derivation of tanh is (1 - (tan(z))^2)
-            cur_layer_output.mapv_inplace(|val| {
-                let v = val.tanh();
-                1.0 - (v * v)
-            });
             // dz^[l] = W^[l+1]^T dz^[l+1] * g'^[l](Z^[l]).
             // dimension of W^[l+1] is (no of units of layer l+1, no of units in layer l)
             // dimension of dz^[l+1] is (no of units of layer l+1, no of examples of the input)
@@ -264,7 +291,14 @@ impl DNN {
             let dw = cur_dz.dot(&pre_layer_output.reversed_axes()) * (1.0 / no_of_examples as f64);
             // db^[l] = (1/m)np.sum(dz^[l], axis=1)
             // dimension of db^[l] is (no of units of layer l, 1)
-            let db = dz.sum_axis(Axis(1)) * (1.0 / no_of_examples as f64);
+            let db = cur_dz.sum_axis(Axis(1)) * (1.0 / no_of_examples as f64);
+            //sum_axis returns the 1 dimensional arrar. but we actually want column vector.
+            let u = self
+                .units
+                .get(cur_layer)
+                .expect("Expecting no of units in current layer");
+            let db = Array2::from_shape_vec((*u, 1), db.to_vec())
+                .expect("Expecting reshaped bias matrix");
 
             // updating the learning parameters for layer l.
             let w = self
@@ -295,7 +329,13 @@ impl DNN {
 }
 
 fn sigmoid(val: f64) -> f64 {
-    let exp_val = val.exp();
-    // note that 1/(1+e^-z)= e^z/((e^z)+1)
-    exp_val / (exp_val + 1.0)
+    let e = std::f64::consts::E;
+    1.0 / (1.0 + e.powf(-1.0 * val))
+}
+
+fn relu(v1: f64, v2: f64) -> f64 {
+    if v1 > v2 {
+        return v1;
+    }
+    v2
 }

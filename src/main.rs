@@ -1,6 +1,6 @@
-use dnnrs::sin_function_prediction;
+use example_neural_network_rs::bi_class::is_number_one;
 
 fn main() {
-    println!("I will train the neural network here");
-    sin_function_prediction();
+    println!("Example Neural Network");
+    is_number_one();
 }
