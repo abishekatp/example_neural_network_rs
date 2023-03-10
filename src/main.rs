@@ -1,6 +1,7 @@
-use example_neural_network_rs::bi_class::is_number_one;
+use example_neural_network_rs::bi_class::{is_number_one, is_number_six};
 
 fn main() {
     println!("Example Neural Network");
-    is_number_one();
+    // is_number_one();
+    is_number_six();
 }

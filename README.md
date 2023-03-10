@@ -22,6 +22,7 @@ and store the predicted output of each layer in the the cache. Each neural netwo
 - Why do we use derivatives? Because derivatives will indicate us how much each parameter will contributed to the increase or decrease in the Loss value L. For example the value dw = dL/dw will say how much weight w contributed for the loss value created by current iteration.
 - Since this is binary classification we use the formula L = - y * log(a) - (1-y) * log(1-a) where `a` is the predicted output and y is actual output. If you look deeply into this function when actual output y=0, we will get L = -log(1-a) and when actual output is y=1, we will get L = -log(a). `a=0.2` and `y=1` means actual output is 1 but our model predicted 0 in this case L = - log(a) = -log(0.2) = 0.69. This value indicates us there is loss in the prediction. Based on this loss value we will calculate the derivative with respect to each of the learning parameters.Finally apply the change to the learning parameters based on these derivatives. we will continue this process many times to improve the learnings.
 - Below is the result of the testing I have done. These are all the actual output and predicted output values. These predicted outputs indicate probability of image being 1.
+
 ```
 Act: 0.000 , Pre: 0.007
 Act: 0.000 , Pre: 0.007
@@ -39,4 +40,30 @@ Act: 0.000 , Pre: 0.007
 Act: 0.000 , Pre: 0.007
 Act: 1.000 , Pre: 0.837
 ```
+- One more model I have tried to train to predict the image which contains number 6. It took me some reasonable amount of time to figure out values for the hyper parameters like learning rate(this was the main culprit), no of units in each layer of network. Eventhough I got some false possitives and false negatives, It predicted the images of the 6 correctly most of the time.
+```
+Act: 6.000 , Pre: 0.700
+Act: 9.000 , Pre: 0.011
+Act: 0.000 , Pre: 0.011
+Act: 3.000 , Pre: 0.011
+Act: 6.000 , Pre: 0.011
+Act: 5.000 , Pre: 0.011
+Act: 5.000 , Pre: 0.011
+Act: 7.000 , Pre: 0.011
+Act: 2.000 , Pre: 0.011
+Act: 8.000 , Pre: 0.011
+Act: 2.000 , Pre: 0.700
+Act: 6.000 , Pre: 0.700
+Act: 7.000 , Pre: 0.011
+Act: 5.000 , Pre: 0.011
+Act: 9.000 , Pre: 0.011
+Act: 2.000 , Pre: 0.011
+Act: 6.000 , Pre: 0.700
+Act: 4.000 , Pre: 0.011
+Act: 1.000 , Pre: 0.011
+Act: 8.000 , Pre: 0.011
+Act: 2.000 , Pre: 0.011
+Act: 9.000 , Pre: 0.011
+```
+
 
