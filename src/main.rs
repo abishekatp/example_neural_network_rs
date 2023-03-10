@@ -1,8 +1,8 @@
-use example_neural_network_rs::bi_class::is_number_match;
+use example_neural_network_rs::bi_class::_train_using_minibatch;
 
 fn main() {
     println!("Example Neural Network");
     // is_number_one();
     // is_number_six();
-    is_number_match();
+    _train_using_minibatch();
 }

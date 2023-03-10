@@ -340,6 +340,14 @@ impl BIDNN {
         self.weights = updated_weights;
         self.biases = update_biases;
     }
+    // grade_check is for checking weather our gradient descent implementation is working correctly.
+    // pub fn grade_check(&self, input_sample: Array2<f64>, output: Array2<f64>) {
+    //     let mut theta = vec![];
+    //     for i in 0..self.weights.len() {
+    //         let w = self.weights.get(i).unwrap();
+    //         let b = self.biases.get(i).unwrap();
+    //     }
+    // }
 }
 
 fn sigmoid(val: f64) -> f64 {
