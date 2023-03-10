@@ -1,5 +1,5 @@
 # Example Neural Network in Rust
-- I have implemented this Neural Network for just learning purpose.(This is only for learning purpose)
+- I have implemented this Neural Network for just learning purpose.
 - I was going through the [Deep Learning and Neural Network lectures](https://www.youtube.com/playlist?list=PLkDaE6sCZn6Ec-XTbcX1uRg2_u4xOEky0) by Andrew Ng and can't resist the thought of implementing it myself as a barebone model.
 ## Binary Classification with Neural Networks
 -`src/bi_class` directory contains the basic neural network implementation for binary classification. This network accepts arbitrary number units in all the arbitrary number of hidden layers and single unit in output layer(since it is binary classification).
