@@ -79,11 +79,16 @@ impl BIDNN {
     // output matrix should have number of rows = no of units in output layer.
     // output matrix should have number of columns = no columns in the input_sample.
     // Each column of output matrix corresponds to ouput of each column in the input_sample.
-    pub fn train(&mut self, input_sample: Array2<f64>, output: Array2<f64>) {
+    pub fn train(&mut self, input_sample: Array2<f64>, output: Array2<f64>) -> f64 {
         // dbg!(&self.weights, &self.biases);
         let cache = self.forward_propagate(input_sample.clone());
-        self.backward_propagate(input_sample, output, cache);
-        dbg!(&self.weights.last());
+        self.backward_propagate(input_sample, output.clone(), cache.clone());
+        let predicted_output = cache
+            .last()
+            .expect("Expecting predicted output of last layer")
+            .clone();
+        let loss = self.log_loss(predicted_output, output);
+        loss
     }
 
     //evaluate returns output value for given input
@@ -155,6 +160,15 @@ impl BIDNN {
             pre_out = z;
         }
         cache
+    }
+
+    fn log_loss(&self, pred: Array2<f64>, output: Array2<f64>) -> f64 {
+        // In logistic regression we have seen log loss formula is L(a,Y) = -y*log(a) - (1-y)log(1-a).
+        let log_pred = pred.mapv(|val| val.ln());
+        let log_one_pred = pred.mapv(|val| (1.0 - val).ln());
+        let pred = (&output * log_pred + (1.0 - &output) * log_one_pred) * -1.0;
+        let loss = pred.sum() * (1.0 / output.ncols() as f64);
+        loss
     }
 
     // backward_propagate will propagate through each layer of the network from the last layer to the first layer.
