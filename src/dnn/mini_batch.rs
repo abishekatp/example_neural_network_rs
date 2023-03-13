@@ -1,5 +1,5 @@
-use crate::bi_class::utils::read_csv;
-use crate::bi_class::{Sigmoid, Tanh, BIDNN};
+use crate::dnn::utils::read_csv;
+use crate::dnn::{Sigmoid, Tanh, BIDNN};
 use ndarray::s;
 
 // Batch Gradient Descent(For training set size < 2000.): In this method we will be using the whole data set as a single batch where each column of the matrix is one input example.
@@ -28,14 +28,13 @@ pub fn _train_using_minibatch() {
     //training the whole data as mini batches.
     // we are splitting 60000 training examples into mini batches.
     for epoch in 0..no_of_epoches {
-        let mut log_loss = 0.0;
         let mut sum = 0.0;
         for j in 0..no_of_mini_batches {
-            let s = j * 500;
-            let e = (j + 1) * 500;
+            let s = j * mini_batch_size;
+            let e = (j + 1) * mini_batch_size;
             let a = train_data.slice(s![.., s..e]).to_owned();
             let b = train_label.slice(s![.., s..e]).to_owned();
-            log_loss = dnn.train(a, b);
+            let log_loss = dnn.train(a, b).expect("Expecting loss value");
             sum += log_loss;
             println!(
                 "Iteration: {} Epoch: {} Log loss: {}",

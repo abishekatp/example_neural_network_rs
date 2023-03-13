@@ -45,3 +45,38 @@ pub fn read_csv(
     }
     (data, label)
 }
+
+pub fn read_csv_multi_class(file_path: &str, no_of_records: usize) -> (Array2<f64>, Array2<f64>) {
+    let mut reader = csv::Reader::from_path(file_path).expect("Expecting to read the file");
+    let mut data = Array2::zeros((784, no_of_records));
+    let mut label = Array2::zeros((10, no_of_records));
+    let mut i = 0;
+    for record in reader.records() {
+        if i == no_of_records {
+            break;
+        }
+        let val = record.expect("Expecting numerical value");
+        let mut iter = val.iter();
+        let lab = iter
+            .next()
+            .expect("Expecting label")
+            .parse::<f64>()
+            .unwrap();
+        for j in 0..9 {
+            if j as f64 == lab {
+                label[[j, i]] = 1.0;
+            }
+        }
+        let mut j = 0;
+        while let Some(val) = iter.next() {
+            if j == 784 {
+                break;
+            }
+            let p = val.parse::<f64>().unwrap();
+            data[[j, i]] = p;
+            j += 1;
+        }
+        i += 1;
+    }
+    (data, label)
+}

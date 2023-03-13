@@ -1,13 +1,14 @@
-mod biclas_network;
 mod mini_batch;
+mod multi_class;
+mod neural_network;
 mod utils;
 
-use biclas_network::{
-    Activation::{Sigmoid, Tanh},
+pub use mini_batch::_train_using_minibatch;
+pub use multi_class::_train_multi_class;
+pub use neural_network::{
+    Activation::{Sigmoid, Softmax, Tanh},
     BIDNN,
 };
-pub use mini_batch::_train_using_minibatch;
-use ndarray::s;
 use utils::read_csv;
 
 // is_number_one outputs the probability of input image being 1
@@ -54,48 +55,6 @@ pub fn _is_number_six() {
     let mut dnn = BIDNN::new(784, vec![6, 5, 1], vec![Tanh, Tanh, Sigmoid], 0.79);
     for _i in 0..40 {
         dnn.train(train_data.to_owned(), train_label.to_owned());
-    }
-
-    //evaluating the model
-    let (test_data, test_label) = read_csv("./archive/mnist_test.csv", test_count, high_val, false);
-    let output = dnn.evaluate(test_data);
-    let mut i = 0;
-    while i < test_count {
-        println!(
-            "Act: {:.3} , Pre: {:.3}",
-            test_label[[0, i]],
-            output[[0, i]]
-        );
-        i += 1;
-    }
-}
-
-pub fn is_number_match() {
-    let train_count = 10000;
-    let test_count = 200;
-    let high_val = vec![8.0];
-    let (train_data, train_label) = read_csv(
-        "./archive/mnist_train.csv",
-        train_count,
-        high_val.clone(),
-        true,
-    );
-    let mut dnn = BIDNN::new(784, vec![9, 5, 8, 1], vec![Tanh, Tanh, Tanh, Sigmoid], 1.1);
-    for i in 0..100 {
-        let log_loss = dnn.train(train_data.to_owned(), train_label.to_owned());
-        println!("Iteration: {} Log loss: {}", i + 1, log_loss);
-        if log_loss < 0.22 {
-            break;
-        }
-    }
-
-    //evaluating on the train data itself.
-    let output = dnn.evaluate(train_data.slice(s![..784, 0..test_count]).to_owned());
-    let mut i = 0;
-    let label = train_label.slice(s![..1, 0..test_count]);
-    while i < test_count {
-        println!("Act: {:.3} , Pre: {:.3}", label[[0, i]], output[[0, i]]);
-        i += 1;
     }
 
     //evaluating the model

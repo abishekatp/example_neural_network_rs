@@ -1,1 +1,1 @@
-pub mod bi_class;
+pub mod dnn;

@@ -3,11 +3,15 @@ use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 #[derive(Debug)]
 pub enum Activation {
-    Sigmoid,
     Tanh,
     ReLu,
+    //Softmax and Sigmoid are used only in output layer.
+    Softmax,
+    Sigmoid,
 }
-
+//todo: Adam optimisation for dw and db.
+//todo: Batch Normalization.
+//todo: Softmax regression.
 #[derive(Debug)]
 pub struct BIDNN {
     // number of layers in the network(hidden and output).
@@ -38,9 +42,6 @@ impl BIDNN {
         let layers = units.len();
         if layers < 2 {
             panic!("Neural network should contain at least two layers")
-        }
-        if *units.last().expect("Expecting units") != 1 {
-            panic!("Neural network should contain only one unit at output layer in a binary classifier")
         }
         let mut weights: Vec<Array2<f64>> = vec![];
         let mut biases: Vec<Array2<f64>> = vec![];
@@ -79,7 +80,7 @@ impl BIDNN {
     // output matrix should have number of rows = no of units in output layer.
     // output matrix should have number of columns = no columns in the input_sample.
     // Each column of output matrix corresponds to ouput of each column in the input_sample.
-    pub fn train(&mut self, input_sample: Array2<f64>, output: Array2<f64>) -> f64 {
+    pub fn train(&mut self, input_sample: Array2<f64>, output: Array2<f64>) -> Option<f64> {
         // dbg!(&self.weights, &self.biases);
         let cache = self.forward_propagate(input_sample.clone());
         self.backward_propagate(input_sample, output.clone(), cache.clone());
@@ -149,11 +150,28 @@ impl BIDNN {
                 Activation::Tanh => {
                     z.mapv_inplace(|val| val.tanh());
                 }
+                // SoftMax is for bi-class classification models.
+                // It should be only used on ouput layer.
                 Activation::Sigmoid => {
                     z.mapv_inplace(|val| sigmoid(val));
                 }
                 Activation::ReLu => {
                     z.mapv_inplace(|val| relu(0.0, val));
+                }
+                // SoftMax is for multi-class classification models.
+                // It should be only used on ouput layer.
+                // t(i)=e^(z(i)) and a^[l](i)=t(i)/sum of all t(i).
+                // for this softmax activation also output will be same.
+                Activation::Softmax => {
+                    for j in 0..z.ncols() {
+                        let mut sum = 0.0;
+                        for i in 0..z.nrows() {
+                            sum += z[[i, j]].exp();
+                        }
+                        for i in 0..z.nrows() {
+                            z[[i, j]] = z[[i, j]].exp() / sum;
+                        }
+                    }
                 }
             }
             cache.push(z.clone());
@@ -162,13 +180,29 @@ impl BIDNN {
         cache
     }
 
-    fn log_loss(&self, pred: Array2<f64>, output: Array2<f64>) -> f64 {
-        // In logistic regression we have seen log loss formula is L(a,Y) = -y*log(a) - (1-y)log(1-a).
-        let log_pred = pred.mapv(|val| val.ln());
-        let log_one_pred = pred.mapv(|val| (1.0 - val).ln());
-        let pred = (&output * log_pred + (1.0 - &output) * log_one_pred) * -1.0;
-        let loss = pred.sum() * (1.0 / output.ncols() as f64);
-        loss
+    fn log_loss(&self, pred: Array2<f64>, output: Array2<f64>) -> Option<f64> {
+        match self
+            .activations
+            .last()
+            .expect("Expecting last activation function")
+        {
+            Activation::Softmax => {
+                pred.mapv(|val| -1.0 * val.ln());
+                // this is elementwise multiplication.
+                let loss_pred = output * pred;
+                let loss = loss_pred.sum() * (1.0 / loss_pred.ncols() as f64);
+                Some(loss)
+            }
+            Activation::Sigmoid => {
+                // In logistic regression we have seen log loss formula is L(a,Y) = -y*log(a) - (1-y)log(1-a).
+                let log_pred = pred.mapv(|val| val.ln());
+                let log_one_pred = pred.mapv(|val| (1.0 - val).ln());
+                let pred = (&output * log_pred + (1.0 - &output) * log_one_pred) * -1.0;
+                let loss = pred.sum() * (1.0 / output.ncols() as f64);
+                Some(loss)
+            }
+            _ => None,
+        }
     }
 
     // backward_propagate will propagate through each layer of the network from the last layer to the first layer.
@@ -193,25 +227,33 @@ impl BIDNN {
         let mut updated_weights: Vec<Array2<f64>> = vec![];
         let mut update_biases: Vec<Array2<f64>> = vec![];
         //for output layer: as of now assuming output layer uses sigmoid activation function
-        let cur_layer_output = cache
+        let last_layer_output = cache
             .get(self.layers - 1)
             .expect("Expecting predicted output of the last layer");
         let prev_layer_out = cache
             .get(self.layers - 2)
             .expect("Expecting predicted output of the layer before layer")
             .clone();
+        let output_units = self
+            .units
+            .last()
+            .expect("Expecting no of units in the last layer");
 
+        // for Sigmoid activation:
         // if g(z) = (1/1+e^-z). for sigmoid function derivative with respect to z will be g'(z) = (1/1+e^-z)(1- (1/1+e^-z))=g(z)(1-g(z)).
         // note the g(Z^[l]) is the output of the layer l.
         // dL/dz = (dL/dg)(dg/dz), if g(z)=a. then dL/dz = (dL/da)(da/dz).
         // For logistic regression L(a,Y) = -y*log(a) - (1-y)log(1-a).
         // if you find these derivatives and substitute in dL/dz you will get dz = dL/dz = (dL/da)(da/dz) = a - y where a is predicted output and y is actual output.
-        // dimension of dz is (1, no of input examples)
 
         // note: the other way could be we can calculate dL/dA and dA/dz then multiply numerically.
         // Here as of now we assumed A will be sigmoid function. so found the equation A-Y.
         // for your reference dL/da = (-y/a) +(1-y / 1-a) and da/dz = a(1-a).
-        let mut dz = cur_layer_output - output;
+
+        // Note: we get this same derivative equation for softmax activation at the ouput layer.
+        // dimension = (no of units in output layer, no of input examples)
+        // in case of sigmoid it will have single row, in case of Softmax it will have multiple rows.
+        let mut dz = last_layer_output - output;
 
         // note: dw and db are dL/dw and dL/db for current layer.
         // we got dw = dL/dw = (dL/dz)(dz/dw) = (dz)(A^[l-1])^T
@@ -219,12 +261,11 @@ impl BIDNN {
         // here (dz x A) dimenstions are (no of units in output layer,no of input examples)x(no of examples, no units in the previous layer)
         // the matrix multiplication will result in (no of units in ouput layer,no of units in previous layer)
         let dw = (dz.dot(&prev_layer_out.reversed_axes())) * (1.0 / no_of_examples as f64);
-        // db is of dimension (no of units in current layer,1)
+        // db is of dimension (no of units in ouput layer,1)
         let db = dz.sum_axis(Axis(1)) * (1.0 / no_of_examples as f64);
         // sum_axis returns the 1 dimensional array. but we actually want column vector.
-        // assuming output layer will have single unit since this is binary classification.
-        let db =
-            Array2::from_shape_vec((1, 1), db.to_vec()).expect("Expecting reshaped bias matrix");
+        let db = Array2::from_shape_vec((output_units.clone(), 1), db.to_vec())
+            .expect("Expecting reshaped bias matrix");
 
         // updating the learning parameters for output layer.
         let w = self
@@ -291,6 +332,9 @@ impl BIDNN {
                         }
                         1.0
                     });
+                }
+                Activation::Softmax => {
+                    panic!("Sofmax should be used only at the ouput layer");
                 }
             }
 
