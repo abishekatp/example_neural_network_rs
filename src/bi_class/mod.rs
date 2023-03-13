@@ -10,7 +10,7 @@ pub use mini_batch::_train_using_minibatch;
 use ndarray::s;
 use utils::read_csv;
 
-// is_number_one_or_five outputs the probability of input image beign either 1 or 5
+// is_number_one outputs the probability of input image being 1
 pub fn _is_number_one() {
     let train_count = 55000;
     let test_count = 20;
@@ -51,9 +51,7 @@ pub fn _is_number_six() {
         high_val.clone(),
         true,
     );
-    //Here learning rate of 0.8 works better.
     let mut dnn = BIDNN::new(784, vec![6, 5, 1], vec![Tanh, Tanh, Sigmoid], 0.79);
-    //training the same data 40 times or more works better for me.
     for _i in 0..40 {
         dnn.train(train_data.to_owned(), train_label.to_owned());
     }
@@ -82,9 +80,7 @@ pub fn is_number_match() {
         high_val.clone(),
         true,
     );
-    //Here learning rate of 0.8 works better.
     let mut dnn = BIDNN::new(784, vec![9, 5, 8, 1], vec![Tanh, Tanh, Tanh, Sigmoid], 1.1);
-    //training the same data 40 times or more works better for me.
     for i in 0..100 {
         let log_loss = dnn.train(train_data.to_owned(), train_label.to_owned());
         println!("Iteration: {} Log loss: {}", i + 1, log_loss);

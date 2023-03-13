@@ -2,7 +2,9 @@ use crate::bi_class::utils::read_csv;
 use crate::bi_class::{Sigmoid, Tanh, BIDNN};
 use ndarray::s;
 
-// this function kind of implements minibatch gradient descent.
+// Batch Gradient Descent(For training set size < 2000.): In this method we will be using the whole data set as a single batch where each column of the matrix is one input example.
+// Mini Batch Gradient Descent(For training set size >2000.Usual mini batch size = 64 to 512): better than batch gradient descent for large data set. We will split our training examples into mini batches and use them to train the model.
+// Stochastic Gradient Descent: In contrast to mini batch this approach uses each input example as 1 batch. In this approch convergence will be bit noisy. This is quite opposite to Batch gradient descent.
 pub fn _train_using_minibatch() {
     let train_count = 60000;
     let test_count = 200;
@@ -13,15 +15,20 @@ pub fn _train_using_minibatch() {
         high_val.clone(),
         true,
     );
-    //Here learning rate of 0.8 works better.
-    let mut dnn = BIDNN::new(784, vec![6, 5, 8, 1], vec![Tanh, Tanh, Tanh, Sigmoid], 0.7);
+    //Here learning rate of 0.01 works better.
+    let mut dnn = BIDNN::new(
+        784,
+        vec![50, 80, 60, 1],
+        vec![Tanh, Tanh, Tanh, Sigmoid],
+        0.01,
+    );
     //training the whole data as mini batches.
-    // we are splitting 60000 training examples as 12 mini batches and train the model for 10 iterations.
-    for i in 0..10 {
+    // we are splitting 60000 training examples into mini batches.
+    for i in 0..5 {
         let mut log_loss = 0.0;
-        for epoch in 0..12 {
-            let s = epoch * 5000;
-            let e = (epoch + 1) * 5000;
+        for epoch in 0..120 {
+            let s = epoch * 500;
+            let e = (epoch + 1) * 500;
             let a = train_data.slice(s![.., s..e]).to_owned();
             let b = train_label.slice(s![.., s..e]).to_owned();
             log_loss = dnn.train(a, b);
@@ -32,7 +39,7 @@ pub fn _train_using_minibatch() {
                 log_loss
             );
         }
-        if log_loss < 0.25 {
+        if log_loss < 0.1 {
             break;
         }
     }
