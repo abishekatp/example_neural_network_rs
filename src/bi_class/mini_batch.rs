@@ -8,6 +8,9 @@ use ndarray::s;
 pub fn _train_using_minibatch() {
     let train_count = 60000;
     let test_count = 200;
+    let no_of_epoches = 5;
+    let mini_batch_size = 500;
+    let no_of_mini_batches = train_count / mini_batch_size;
     let high_val = vec![8.0];
     let (train_data, train_label) = read_csv(
         "./archive/mnist_train.csv",
@@ -24,22 +27,25 @@ pub fn _train_using_minibatch() {
     );
     //training the whole data as mini batches.
     // we are splitting 60000 training examples into mini batches.
-    for i in 0..5 {
+    for epoch in 0..no_of_epoches {
         let mut log_loss = 0.0;
-        for epoch in 0..120 {
-            let s = epoch * 500;
-            let e = (epoch + 1) * 500;
+        let mut sum = 0.0;
+        for j in 0..no_of_mini_batches {
+            let s = j * 500;
+            let e = (j + 1) * 500;
             let a = train_data.slice(s![.., s..e]).to_owned();
             let b = train_label.slice(s![.., s..e]).to_owned();
             log_loss = dnn.train(a, b);
+            sum += log_loss;
             println!(
                 "Iteration: {} Epoch: {} Log loss: {}",
-                i + 1,
-                epoch,
+                epoch + 1,
+                j,
                 log_loss
             );
         }
-        if log_loss < 0.1 {
+        // checking average loss of current epoch rather than checking directly.
+        if sum / 120.0 < 0.2 {
             break;
         }
     }
