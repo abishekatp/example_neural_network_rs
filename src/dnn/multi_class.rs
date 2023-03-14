@@ -6,7 +6,7 @@ use ndarray::s;
 // Mini Batch Gradient Descent(For training set size >2000.Usual mini batch size = 64 to 512): better than batch gradient descent for large data set. We will split our training examples into mini batches and use them to train the model.
 // Stochastic Gradient Descent: In contrast to mini batch this approach uses each input example as 1 batch. In this approch convergence will be bit noisy. This is quite opposite to Batch gradient descent.
 pub fn _train_multi_class() {
-    let train_count = 10000;
+    let train_count = 60000;
     let test_count = 200;
     let no_of_epoches = 5;
     let mini_batch_size = 500;
@@ -15,9 +15,9 @@ pub fn _train_multi_class() {
     //Here learning rate of 0.01 works better.
     let mut dnn = BIDNN::new(
         784,
-        vec![50, 80, 60, 10],
-        vec![Tanh, Tanh, Tanh, Softmax],
-        0.01,
+        vec![50, 80, 60, 90, 100, 40, 10],
+        vec![Tanh, Tanh, Tanh, Tanh, Tanh, Tanh, Softmax],
+        0.1,
     );
     //training the whole data as mini batches.
     // we are splitting 60000 training examples into mini batches.
@@ -46,9 +46,9 @@ pub fn _train_multi_class() {
     //evaluating on the train data itself.
     let output = dnn.evaluate(train_data.slice(s![..784, 0..test_count]).to_owned());
     let mut i = 0;
-    let label = train_label.slice(s![..1, 0..test_count]);
+    let label = train_label.slice(s![.., 0..test_count]);
     while i < test_count {
-        println!("Act: {:.3} , Pre: {:.3}", label[[0, i]], output[[0, i]]);
+        println!("Act: {:.3} , Pre: {:.3}", label.column(i), output.column(i));
         i += 1;
     }
 
@@ -59,8 +59,8 @@ pub fn _train_multi_class() {
     while i < test_count {
         println!(
             "Act: {:.3} , Pre: {:.3}",
-            test_label[[0, i]],
-            output[[0, i]]
+            test_label.column(i),
+            output.column(i)
         );
         i += 1;
     }

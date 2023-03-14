@@ -187,10 +187,11 @@ impl BIDNN {
             .expect("Expecting last activation function")
         {
             Activation::Softmax => {
-                pred.mapv(|val| -1.0 * val.ln());
+                let pred = pred.mapv(|val| -1.0 * val.ln());
                 // this is elementwise multiplication.
-                let loss_pred = output * pred;
-                let loss = loss_pred.sum() * (1.0 / loss_pred.ncols() as f64);
+                // this multiplication is corresponding to -y * log(a). y will be 1 at only one row at each column
+                let loss_pred = &output * &pred;
+                let loss = loss_pred.sum() * (1.0 / output.ncols() as f64);
                 Some(loss)
             }
             Activation::Sigmoid => {
@@ -384,14 +385,6 @@ impl BIDNN {
         self.weights = updated_weights;
         self.biases = update_biases;
     }
-    // grade_check is for checking weather our gradient descent implementation is working correctly.
-    // pub fn grade_check(&self, input_sample: Array2<f64>, output: Array2<f64>) {
-    //     let mut theta = vec![];
-    //     for i in 0..self.weights.len() {
-    //         let w = self.weights.get(i).unwrap();
-    //         let b = self.biases.get(i).unwrap();
-    //     }
-    // }
 }
 
 fn sigmoid(val: f64) -> f64 {

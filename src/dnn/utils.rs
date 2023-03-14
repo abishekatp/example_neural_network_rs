@@ -62,9 +62,11 @@ pub fn read_csv_multi_class(file_path: &str, no_of_records: usize) -> (Array2<f6
             .expect("Expecting label")
             .parse::<f64>()
             .unwrap();
-        for j in 0..9 {
-            if j as f64 == lab {
+        for j in 0..10 {
+            // if number is 5 then 5th row of that column will be 1.0
+            if j == lab as usize {
                 label[[j, i]] = 1.0;
+                break;
             }
         }
         let mut j = 0;
