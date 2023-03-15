@@ -1,5 +1,5 @@
 use crate::dnn::utils::read_csv_multi_class;
-use crate::dnn::{Softmax, Tanh, BIDNN};
+use crate::dnn::{Softmax, Tanh, DNN};
 use ndarray::s;
 
 // Batch Gradient Descent(For training set size < 2000.): In this method we will be using the whole data set as a single batch where each column of the matrix is one input example.
@@ -13,7 +13,7 @@ pub fn _train_multi_class() {
     let no_of_mini_batches = train_count / mini_batch_size;
     let (train_data, train_label) = read_csv_multi_class("./archive/mnist_train.csv", train_count);
     //Here learning rate of 0.01 works better.
-    let mut dnn = BIDNN::new(
+    let mut dnn = DNN::new(
         784,
         vec![50, 80, 60, 90, 100, 40, 10],
         vec![Tanh, Tanh, Tanh, Tanh, Tanh, Tanh, Softmax],

@@ -1,5 +1,5 @@
 use crate::dnn::utils::read_csv;
-use crate::dnn::{Sigmoid, Tanh, BIDNN};
+use crate::dnn::{Sigmoid, Tanh, DNN};
 use ndarray::s;
 
 // Batch Gradient Descent(For training set size < 2000.): In this method we will be using the whole data set as a single batch where each column of the matrix is one input example.
@@ -19,7 +19,7 @@ pub fn _train_using_minibatch() {
         true,
     );
     //Here learning rate of 0.01 works better.
-    let mut dnn = BIDNN::new(
+    let mut dnn = DNN::new(
         784,
         vec![50, 80, 60, 1],
         vec![Tanh, Tanh, Tanh, Sigmoid],

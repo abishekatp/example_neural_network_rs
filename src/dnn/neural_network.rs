@@ -13,7 +13,7 @@ pub enum Activation {
 //todo: Batch Normalization.
 //todo: Softmax regression.
 #[derive(Debug)]
-pub struct BIDNN {
+pub struct DNN {
     // number of layers in the network(hidden and output).
     layers: usize,
     // number of units in each layer.
@@ -32,13 +32,13 @@ pub struct BIDNN {
     no_of_input_features: usize,
 }
 
-impl BIDNN {
+impl DNN {
     pub fn new(
         no_of_input_features: usize,
         units: Vec<usize>,
         activations: Vec<Activation>,
         learning_rate: f64,
-    ) -> BIDNN {
+    ) -> DNN {
         let layers = units.len();
         if layers < 2 {
             panic!("Neural network should contain at least two layers")
@@ -63,7 +63,7 @@ impl BIDNN {
 
             pre_units = *cur_units;
         }
-        BIDNN {
+        DNN {
             layers,
             units,
             weights,
@@ -205,6 +205,12 @@ impl BIDNN {
             _ => None,
         }
     }
+
+    // todos: when I get time I can add gradient check which will compare this gradient result with numerically computed gradient and show the correctness of this implementation.
+    // here we are using gradient descent optimization. We can use Adam optimization for faster training.
+    // I am not going to implement all these things here but we can test it out in python frameworks like tensorflow or pytorch.
+    // some optimization techniques are Exponentially Weighted average,Root mean square(RMS), Adam optimisation, learning rate decay,
+    // Batch Normalization(same as normalization to input but applied to all the inputs of the hidden layers).
 
     // backward_propagate will propagate through each layer of the network from the last layer to the first layer.
     // In the backward propagation we will calculate derivative of L with respect each learning parameter of the each neural network unit.
