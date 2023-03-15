@@ -110,7 +110,8 @@ impl DNN {
     // In forward propagate we will use these parameters W(self.weights) and B(self.biases) to predict the output.
     // second layer will predict the output based on first layers output.
     // at the end we will have single predicted output from the output layer.
-    fn forward_propagate(&mut self, input_sample: Array2<f64>) -> Vec<Array2<f64>> {
+    // returns the cache which will contain the output of the each layer.
+    pub fn forward_propagate(&mut self, input_sample: Array2<f64>) -> Vec<Array2<f64>> {
         //getting no of columns in the input sample
         // this ncols return the lenght of Axis(1)
         let no_of_examples = input_sample.ncols();
@@ -222,7 +223,7 @@ impl DNN {
     // But for simplification we have calculated these derivatives already as formulas which we are using here.
     // why do we use derivatives? Because derivatives will indicate us for the increase or decrease in the Loss value how much each parameter contributed.
     // For example the value dw = dL/dw will say how much weight w contributed for the loss value created by current iteration.
-    fn backward_propagate(
+    pub fn backward_propagate(
         &mut self,
         input_sample: Array2<f64>,
         output: Array2<f64>,
