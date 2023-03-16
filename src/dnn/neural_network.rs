@@ -228,7 +228,8 @@ impl DNN {
         input_sample: Array2<f64>,
         output: Array2<f64>,
         cache: Vec<Array2<f64>>,
-    ) {
+    ) -> Array2<f64> {
+        let mut gradient_wrt_input = Array2::zeros(input_sample.dim());
         // getting no of columns in the input sample
         // this ncols return the lenght of Axis(1)
         let no_of_examples = input_sample.ncols();
@@ -375,6 +376,16 @@ impl DNN {
                 .biases
                 .get(cur_layer)
                 .expect("Expecting mutable weights");
+
+            if cur_layer == 0 {
+                // Note: this value is used by convolution neural network to calculate their gradient.
+                // dimension of cur_dz^[l] is (no of units in layer l, no of input examples)
+                // dimension of W^[l] is (no of units of layer l, no of units in layer l-1)
+                // this will give output dimension (no of units in layer l-1,no of input examples)
+                // this is also logically multiplying each network unit's array weight into each example array.
+                gradient_wrt_input = w.clone().reversed_axes().dot(&cur_dz);
+            }
+
             // W := W - (dW * alpha), B := B - (dB * alpha)
             let w = w - (dw * self.learning_rate);
             let b = b - (db * self.learning_rate);
@@ -391,6 +402,7 @@ impl DNN {
         update_biases.reverse();
         self.weights = updated_weights;
         self.biases = update_biases;
+        gradient_wrt_input
     }
 }
 
