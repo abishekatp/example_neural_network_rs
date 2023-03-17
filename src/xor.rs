@@ -21,7 +21,7 @@ pub fn xor() {
         LossType::MSE,
         x_train.clone(),
         y_train,
-        100,
+        10000,
         0.01,
     );
     let network_clone = Rc::clone(&network);

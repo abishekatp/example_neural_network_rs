@@ -34,16 +34,16 @@ impl Dense {
     }
 
     pub fn backward(&mut self, output_grad: Array2<f64>, learning_rate: f64) -> Array2<f64> {
-        if let Some(input) = self.input.clone() {
-            let weight_grad = output_grad.dot(&input.clone().reversed_axes());
-            self.weights = &self.weights - weight_grad * learning_rate;
+        let input = self.input.clone().expect("Expecting the input");
+        let weight_grad = output_grad.dot(&input.clone().reversed_axes());
+        self.weights = &self.weights - (weight_grad * learning_rate);
 
-            let average_bias_grad = output_grad.sum_axis(Axis(1)) * (1.0 / input.ncols() as f64);
-            let reshaped_bias_grad =
-                Array2::from_shape_vec((self.output_size, 1), average_bias_grad.to_vec())
-                    .expect("Expecting reshaped bias matrix");
-            self.biases = &self.biases - reshaped_bias_grad * learning_rate;
-        }
+        let average_bias_grad = output_grad.sum_axis(Axis(1)) * (1.0 / input.ncols() as f64);
+        let reshaped_bias_grad =
+            Array2::from_shape_vec((self.output_size, 1), average_bias_grad.to_vec())
+                .expect("Expecting reshaped bias matrix");
+        self.biases = &self.biases - (reshaped_bias_grad * learning_rate);
+
         let reversed_weight = self.weights.clone().reversed_axes();
         reversed_weight.dot(&output_grad)
     }

@@ -5,9 +5,9 @@ pub mod losses;
 
 use std::{cell::RefCell, rc::Rc};
 
-use activations::{Sigmoid, Tanh};
-use dense::Dense;
-use losses::{binary_cross_entropy, binary_cross_entropy_grad, mse, mse_grad};
+use crate::network::activations::{Sigmoid, Tanh};
+use crate::network::dense::Dense;
+use crate::network::losses::{binary_cross_entropy, binary_cross_entropy_grad, mse, mse_grad};
 use ndarray::Array2;
 
 #[derive(Clone)]
@@ -37,12 +37,11 @@ pub fn predict(network: Rc<RefCell<Vec<Layer>>>, input: Array2<f64>) -> Array2<f
 }
 
 fn grad(network: Rc<RefCell<Vec<Layer>>>, output_grad: Array2<f64>, learning_rate: f64) {
-    let network = network.borrow_mut();
+    let mut network = network.borrow_mut();
     let mut grad = output_grad;
-    let mut net = network;
-    let mut current_layer = net.len() - 1;
+    let mut current_layer = network.len() - 1;
     loop {
-        let layer = net.get_mut(current_layer).unwrap();
+        let layer = network.get_mut(current_layer).unwrap();
         match layer {
             Layer::Dense(dense) => {
                 grad = dense.backward(grad, learning_rate);
@@ -86,7 +85,7 @@ pub fn train(
             LossType::BinaryCrossEntrophy => {
                 let err = binary_cross_entropy(y_pred.clone(), y_train.clone());
                 y_pred = binary_cross_entropy_grad(y_pred, y_train.clone());
-                println!("MSE: {}", err);
+                println!("epoch: {} BinaryCrossEntrophy: {}", e, err);
             }
         }
 

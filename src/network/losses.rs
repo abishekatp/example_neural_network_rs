@@ -20,7 +20,7 @@ pub fn binary_cross_entropy(predicted: Array2<f64>, actual: Array2<f64>) -> f64 
 }
 
 pub fn binary_cross_entropy_grad(predicted: Array2<f64>, actual: Array2<f64>) -> Array2<f64> {
-    let loss_grad = (1.0 - &actual / 1.0 - &predicted) - (&actual / &predicted);
+    let loss_grad = (1.0 - &actual) / (1.0 - &predicted) - &actual / &predicted;
     let rows = actual.nrows();
     loss_grad * (1.0 / rows as f64)
 }
