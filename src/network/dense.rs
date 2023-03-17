@@ -1,8 +1,8 @@
 use ndarray::{Array2, Axis};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
+#[derive(Clone)]
 pub struct Dense {
-    input_size: usize,
     output_size: usize,
     weights: Array2<f64>,
     biases: Array2<f64>,
@@ -23,7 +23,6 @@ impl Dense {
             weights: Array2::random((output_size, input_size), Uniform::new(0.01, 0.09)),
             biases: Array2::zeros((output_size, 1)),
             input: None,
-            input_size,
             output_size,
         }
     }
@@ -31,13 +30,14 @@ impl Dense {
     // ouput dimension (output_size, no of examples)
     pub fn forward(&mut self, input: Array2<f64>) -> Array2<f64> {
         self.input = Some(input.clone());
-        input.dot(&self.weights) + &self.biases
+        self.weights.dot(&input) + &self.biases
     }
 
     pub fn backward(&mut self, output_grad: Array2<f64>, learning_rate: f64) -> Array2<f64> {
         if let Some(input) = self.input.clone() {
             let weight_grad = output_grad.dot(&input.clone().reversed_axes());
             self.weights = &self.weights - weight_grad * learning_rate;
+
             let average_bias_grad = output_grad.sum_axis(Axis(1)) * (1.0 / input.ncols() as f64);
             let reshaped_bias_grad =
                 Array2::from_shape_vec((self.output_size, 1), average_bias_grad.to_vec())
