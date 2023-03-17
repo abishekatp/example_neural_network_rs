@@ -2,10 +2,11 @@ pub mod activations;
 pub mod convolution;
 pub mod dense;
 pub mod losses;
+pub mod reshape;
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::network::activations::{Sigmoid, Tanh};
+use crate::network::activations::{ReLu, Sigmoid, Softmax, Tanh};
 use crate::network::dense::Dense;
 use crate::network::losses::{binary_cross_entropy, binary_cross_entropy_grad, mse, mse_grad};
 use ndarray::Array2;
@@ -15,6 +16,8 @@ pub enum Layer {
     Dense(Dense),
     Tanh(Tanh),
     Sigmoid(Sigmoid),
+    Softmax(Softmax),
+    ReLu(ReLu),
 }
 
 pub fn predict(network: Rc<RefCell<Vec<Layer>>>, input: Array2<f64>) -> Array2<f64> {
@@ -30,6 +33,12 @@ pub fn predict(network: Rc<RefCell<Vec<Layer>>>, input: Array2<f64>) -> Array2<f
             }
             Layer::Sigmoid(sig) => {
                 output = sig.forward(output);
+            }
+            Layer::Softmax(s) => {
+                output = s.forward(output);
+            }
+            Layer::ReLu(r) => {
+                output = r.forward(output);
             }
         }
     }
@@ -51,6 +60,12 @@ fn grad(network: Rc<RefCell<Vec<Layer>>>, output_grad: Array2<f64>, learning_rat
             }
             Layer::Sigmoid(sig) => {
                 grad = sig.backward(grad);
+            }
+            Layer::Softmax(s) => {
+                grad = s.backward(grad);
+            }
+            Layer::ReLu(r) => {
+                grad = r.backward(grad);
             }
         }
         if current_layer == 0 {
