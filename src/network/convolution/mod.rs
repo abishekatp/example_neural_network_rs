@@ -1,3 +1,5 @@
+pub mod activations;
+
 use convolutions_rs::convolutions::*;
 use convolutions_rs::Padding;
 use ndarray::Axis;
@@ -89,7 +91,7 @@ impl Convolution {
         output
     }
 
-    pub fn backward(&self, output_grad: Array3<f64>, learning_rate: f64) {
+    pub fn backward(&self, output_grad: Array3<f64>, learning_rate: f64) -> Array3<f64> {
         let kernels_gradient: Array4<f64> = Array4::zeros(self.kernal_shape);
         let input_gradient: Array3<f64> = Array3::zeros(self.input_shape);
         let input = self.input.clone().expect("Expecting input matrix");
@@ -119,5 +121,6 @@ impl Convolution {
         }
 
         let input_grad: Array3<f64> = Array3::zeros(self.input_shape);
+        todo!()
     }
 }
