@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+convolutions-rs = "0.3.4"
 csv = "1.2.1"
 ndarray = "0.15.6"
 ndarray-rand = "0.14.0"

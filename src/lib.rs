@@ -1,1 +1,4 @@
-pub mod bi_class;
+pub mod mnist_conv;
+pub mod network;
+pub mod utils;
+pub mod xor;
